@@ -5,21 +5,21 @@ class CustomCNN(nn.Module):
     def __init__(self, num_classes=50):
         super(CustomCNN, self).__init__()
         
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, padding=1)
+        self.conv1 = nn.Conv2d(3, 512, kernel_size=5, padding=1)
         self.bn1 = nn.BatchNorm2d(64)
         self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
         
-        self.conv2 = nn.Conv2d(64, 64, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv2d(512, 512, kernel_size=5, padding=1)
         self.bn2 = nn.BatchNorm2d(64)
         
-        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, padding=1)
+        self.conv3 = nn.Conv2d(512, 512, kernel_size=5, padding=1)
         self.bn3 = nn.BatchNorm2d(64)
         
-        self.conv4 = nn.Conv2d(64, 64, kernel_size=3, padding=1)
+        self.conv4 = nn.Conv2d(512, 512, kernel_size=5, padding=1)
         self.bn4 = nn.BatchNorm2d(64)
         self.pool4 = nn.MaxPool2d(kernel_size=2, stride=2)
         
-        self.fc1 = nn.Linear(64 * 16 * 16, 4096)
+        self.fc1 = nn.Linear(512 * 16 * 16, 4096)
         self.drop1 = nn.Dropout(0.15)
         self.fc2 = nn.Linear(4096, 1024)
         self.drop2 = nn.Dropout(0.15)

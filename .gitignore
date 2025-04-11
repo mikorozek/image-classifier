@@ -172,7 +172,5 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
-paczka_klasyfikacyjna_obrazkow/wandb/
-paczka_klasyfikacyjna_obrazkow/data/*
-paczka_klasyfikacja_obrazkow/data/
-paczka_klasyfikacja_obrazkow/wandb/
+data/
+wandb/

@@ -74,20 +74,6 @@ def train_model():
                 loss = criterion(outputs, labels)
                 
                 loss.backward()
-                gradients = {}
-                for name, param in model.named_parameters():
-                    if param.requires_grad and param.grad is not None:
-                        grad_data = param.grad.cpu().numpy().flatten()
-                        
-                        data_table = wandb.Table(data=[[x] for x in grad_data], columns=[name])
-                        
-                        wandb.log({
-                            f"gradient_hist/{name}": wandb.plot.histogram(
-                                table=data_table,
-                                value=name,
-                                title=f"Gradient Histogram - {name}"
-                            )
-                        }, step=epoch * len(train_loader) + i)
                 optimizer.step()
             
             train_loss += loss.item() * inputs.size(0)
