@@ -174,3 +174,5 @@ cython_debug/
 .pypirc
 paczka_klasyfikacyjna_obrazkow/wandb/
 paczka_klasyfikacyjna_obrazkow/data/*
+paczka_klasyfikacja_obrazkow/data/
+paczka_klasyfikacja_obrazkow/wandb/
