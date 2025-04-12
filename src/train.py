@@ -1,19 +1,27 @@
 import os
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
 import torch
 import torch.nn as nn
+import seaborn as sns
+from torchvision.datasets import ImageFolder
+import torchvision.transforms as transforms
 import torch.optim as optim
 from torch.utils.data import DataLoader, random_split
 from datasets import ProcessedImageDataset
 from model import CustomCNN
 import wandb
 
-def train_model():
-    processed_dir = './data/processed/'
-    batch_size = 64
+def train_model(plots_dir="plots/", augmentation_data_dir=None, model_path=None):
+    batch_size = 128
     num_epochs = 30
-    learning_rate = 0.001
+    learning_rate = 1e-4
     validation_split = 0.2
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    plots = './plots'
+    if not os.path.exists(plots):
+        os.makedirs(plots)
     
     wandb.init(
         project="image-classification-project",
@@ -28,28 +36,35 @@ def train_model():
         }
     )
     
-    full_dataset = ProcessedImageDataset(processed_dir)
+    if augmentation_data_dir:
+        full_dataset = ProcessedImageDataset(augmentation_data_dir)
+    else:
+        train_transform = transforms.Compose(
+            [transforms.RandomHorizontalFlip(0.5),
+             transforms.RandomRotation(24),
+             transforms.ToTensor(),
+             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+        full_dataset = ImageFolder("./data/train/", transform=train_transform)
     
     dataset_size = len(full_dataset)
     val_size = int(validation_split * dataset_size)
     train_size = dataset_size - val_size
     
     train_dataset, val_dataset = random_split(full_dataset, [train_size, val_size])
-
     
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=1)
-    del full_dataset
     del train_dataset
     del val_dataset
     
     model = CustomCNN() 
+    if model_path:
+        model.load_state_dict(torch.load(model_path, map_location=device))
     
     model = model.to(device)
-    wandb.watch(model, log="all")
     
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=0.01)
+    optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=0.07)
     
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
     
@@ -83,8 +98,8 @@ def train_model():
         
         scheduler.step()
         
-        epoch_train_loss = train_loss / len(train_dataset)
-        epoch_train_acc = float(train_corrects) / float(len(train_dataset))
+        epoch_train_loss = train_loss / (len(train_loader) * batch_size)
+        epoch_train_acc = float(train_corrects) / (len(train_loader) * batch_size)
         
         model.eval()
         val_loss = 0.0
@@ -108,17 +123,30 @@ def train_model():
             all_preds.extend(preds.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
         
-        epoch_val_loss = val_loss / len(val_dataset)
-        epoch_val_acc = float(val_corrects) / float(len(val_dataset))
+        epoch_val_loss = val_loss / (len(val_loader) * batch_size)
+        epoch_val_acc = float(val_corrects) / (len(val_loader) * batch_size)
         
         print(f"Train Loss: {epoch_train_loss:.4f} Acc: {epoch_train_acc:.4f}")
         print(f"Val Loss: {epoch_val_loss:.4f} Acc: {epoch_val_acc:.4f}")
         
+        cm = confusion_matrix(all_labels, all_preds)
+        
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
+                    xticklabels=full_dataset.classes, 
+                    yticklabels=full_dataset.classes)
+        plt.xlabel('Predicted')
+        plt.ylabel('True')
+        plt.title(f'Confusion Matrix - Epoch {epoch+1}')
+        plt.tight_layout()
+        plt.savefig(f'{plots}/confusion_matrix_epoch_{epoch+1}.png', dpi=300)
+        plt.close()
+
         log_dict = {
             "train_loss": epoch_train_loss,
-            "train_accuracy": epoch_train_acc.item(),
+            "train_accuracy": epoch_train_acc,
             "val_loss": epoch_val_loss,
-            "val_accuracy": epoch_val_acc.item(),
+            "val_accuracy": epoch_val_acc,
         }
         
         log_dict["confusion_matrix"] = wandb.plot.confusion_matrix(

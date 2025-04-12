@@ -3,19 +3,8 @@ import torch
 from torchvision import datasets, transforms
 from PIL import Image
 
-data_dir = './data/train/'
-output_dir = './data/processed/'
 
-os.makedirs(output_dir, exist_ok=True)
-
-transform_train2 = transforms.Compose([
-    transforms.RandomRotation(24),
-    transforms.ToTensor(),
-    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-])
-transforms_list = [transform_train2]
-
-def preprocess_and_save_by_class(source_dir, output_dir, augmentation_transforms):
+def preprocess_and_save_by_class(source_dir, output_dir, base_transform, augmentation_transforms):
     dataset = datasets.ImageFolder(root=source_dir)
     
     classes = dataset.classes
@@ -48,11 +37,6 @@ def preprocess_and_save_by_class(source_dir, output_dir, augmentation_transforms
             try:
                 img = Image.open(img_path).convert('RGB')
                 
-                base_transform = transforms.Compose([
-                    transforms.ToTensor(),
-                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-                ])
-                
                 processed_img = base_transform(img)
                 processed_images.append(processed_img)
                 labels.append(label)
@@ -78,4 +62,43 @@ def preprocess_and_save_by_class(source_dir, output_dir, augmentation_transforms
         torch.cuda.empty_cache() if torch.cuda.is_available() else None
 
 if __name__ == "__main__":
-    preprocess_and_save_by_class(data_dir, output_dir, transforms_list)
+    data_dir = './data/train/'
+    output_dir = './data/processed/'
+    os.makedirs(output_dir, exist_ok=True)
+
+    mean = (0.5, 0.5, 0.5)
+    std = (0.5, 0.5, 0.5)
+
+    base_transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean, std)
+    ])
+
+    augmentation_transforms = [
+        transforms.Compose([
+            transforms.RandomRotation(24),
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std)
+        ]),
+        transforms.Compose([
+            transforms.RandomHorizontalFlip(p=1.0),
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std)
+        ]),
+        transforms.Compose([
+            transforms.RandomVerticalFlip(p=1.0),
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std)
+        ]),
+        transforms.Compose([
+            transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std)
+        ]),
+        transforms.Compose([
+            transforms.RandomPerspective(distortion_scale=0.2, p=1.0),
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std)
+        ])
+    ]
+    preprocess_and_save_by_class(data_dir, output_dir, base_transform, augmentation_transforms)
