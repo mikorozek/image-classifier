@@ -7,7 +7,7 @@ import torchvision.transforms as transforms
 from model import CustomCNN
 import csv
 
-def save_prediction(model_path='best_model.pth', test_dir='data/test_all', output_file='predictions.csv'):
+def save_prediction(model_path='models/best_model.pth', test_dir='data/test_all', output_file='pred.csv'):
     batch_size = 32
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
@@ -44,8 +44,4 @@ def save_prediction(model_path='best_model.pth', test_dir='data/test_all', outpu
     
 
 if __name__ == "__main__":
-    save_prediction(
-        model_path='best_model.pth',
-        test_dir='data/test_all',
-        output_file='predictions.csv'
-    )
+    save_prediction()

@@ -12,17 +12,13 @@ from datasets import ProcessedImageDataset
 from model import CustomCNN
 import wandb
 
-def train_model(plots_dir="plots/", augmentation_data_dir=None, model_path=None):
+def train_model(augmentation_data_dir=None, model_path=None):
     batch_size = 128
     num_epochs = 30
     learning_rate = 1e-4
     validation_split = 0.2
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    plots = './plots'
-    if not os.path.exists(plots):
-        os.makedirs(plots)
-    
     wandb.init(
         project="image-classification-project",
         config={
@@ -57,16 +53,16 @@ def train_model(plots_dir="plots/", augmentation_data_dir=None, model_path=None)
     del train_dataset
     del val_dataset
     
-    model = CustomCNN() 
+    model = CustomCNN(dropout_rate=0.15) 
     if model_path:
         model.load_state_dict(torch.load(model_path, map_location=device))
     
     model = model.to(device)
     
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=0.07)
+    optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=0.03)
     
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.9)
     
     best_val_acc = 0.0
     
@@ -129,19 +125,6 @@ def train_model(plots_dir="plots/", augmentation_data_dir=None, model_path=None)
         print(f"Train Loss: {epoch_train_loss:.4f} Acc: {epoch_train_acc:.4f}")
         print(f"Val Loss: {epoch_val_loss:.4f} Acc: {epoch_val_acc:.4f}")
         
-        cm = confusion_matrix(all_labels, all_preds)
-        
-        plt.figure(figsize=(10, 8))
-        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
-                    xticklabels=full_dataset.classes, 
-                    yticklabels=full_dataset.classes)
-        plt.xlabel('Predicted')
-        plt.ylabel('True')
-        plt.title(f'Confusion Matrix - Epoch {epoch+1}')
-        plt.tight_layout()
-        plt.savefig(f'{plots}/confusion_matrix_epoch_{epoch+1}.png', dpi=300)
-        plt.close()
-
         log_dict = {
             "train_loss": epoch_train_loss,
             "train_accuracy": epoch_train_acc,

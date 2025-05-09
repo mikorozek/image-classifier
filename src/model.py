@@ -3,7 +3,7 @@ import torch.nn.functional as F
 import torch.nn.init as init
 
 class CustomCNN(nn.Module):
-    def __init__(self, num_classes=50):
+    def __init__(self, num_classes=50, dropout_rate=0.0):
         super(CustomCNN, self).__init__()
         
         self.conv1 = nn.Conv2d(3, 128, kernel_size=3, padding=1)
@@ -21,9 +21,9 @@ class CustomCNN(nn.Module):
         self.pool4 = nn.MaxPool2d(kernel_size=2, stride=2)
         
         self.fc1 = nn.Linear(64 * 16 * 16, 4096)
-        # self.drop1 = nn.Dropout(0.15)
+        self.drop1 = nn.Dropout(dropout_rate)
         self.fc2 = nn.Linear(4096, 1024)
-        # self.drop2 = nn.Dropout(0.15)
+        self.drop2 = nn.Dropout(dropout_rate)
         self.fc3 = nn.Linear(1024, num_classes)
 
         self._initialize_weights
@@ -41,9 +41,9 @@ class CustomCNN(nn.Module):
         
         x = x.view(x.size(0), -1)
         x = F.relu(self.fc1(x))
-        # x = self.drop1(x)
+        x = self.drop1(x)
         x = F.relu(self.fc2(x))
-        # x = self.drop2(x)
+        x = self.drop2(x)
         x = self.fc3(x)
         
         return x
